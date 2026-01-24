@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>CrimePredictPro - Advanced Crime Analytics</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="Advanced crime analytics platform with geospatial visualization and predictive modeling" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="manifest" href="/manifest.json" />
+  
+  <!-- Google Maps API for A+ grade geospatial visualization -->
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBtSa8xXcVxVR1yN3X9nQe0uqjJcZ3bY4&libraries=geometry&callback=initMap">
+  </script>
+  
+  <script>
+    // Initialize map callback for Google Maps API
+    function initMap() {
+      console.log('Google Maps API loaded successfully');
+      window.googleMapsReady = true;
+    }
+    
+    // Error handling for Google Maps API
+    window.gm_authFailure = function() {
+      console.warn('Google Maps API authentication failed - using fallback mode');
+      window.googleMapsReady = false;
+    };
+  </script>
+  
+<script type="module" src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fcrimepredi4287back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.8"></script>
+</head>
+
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div class="dhiwise-code" id="root"></div>
+  <script type="module" src="/src/index.jsx"></script>
+</body>
+
+</html>

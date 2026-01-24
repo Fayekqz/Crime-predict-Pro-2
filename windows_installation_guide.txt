@@ -1,0 +1,51 @@
+# Crime Analytics Project - Windows Installation Guide
+
+## Step 1: Verify Node.js Installation
+```
+node --version
+npm --version
+```
+If Node.js is not installed, download and install it from: https://nodejs.org/
+Recommended version: Node.js 16.x or higher
+
+## Step 2: Clone or Download the Project
+Option 1 - Using Git:
+```
+git clone [repository-url] new_Crime_analytics
+```
+
+Option 2 - Manual Download:
+Download and extract the ZIP file from the repository website to your desired location.
+
+## Step 3: Navigate to Project Directory
+```
+cd path\to\new_Crime_analytics
+```
+Replace "path\to" with the actual path where you saved the project.
+
+## Step 4: Install Project Dependencies
+```
+npm install
+```
+This will install all required dependencies listed in package.json.
+
+## Step 5: Start the Application
+```
+npm run dev
+```
+This will start the development server. The application should be available at http://localhost:5173 (or similar URL as indicated in the terminal).
+
+## Alternative: Using the Provided Setup Script
+You can also use the included setup script:
+```
+.\setup.bat
+```
+And then start the application with:
+```
+.\start.bat
+```
+
+## Troubleshooting
+- If you encounter permission issues, try running Command Prompt or PowerShell as Administrator
+- If npm install fails, check your internet connection and try again
+- Make sure you have sufficient disk space for the dependencies

@@ -1,0 +1,48 @@
+< width="19" het="180" veo="0 0 19 180" fill="nne" xlns="http://ww.w3.rg/2000/svg">
+<defs>
+<ierGrent i="ackgronGradnt" x1="0%" 1="0%" 2="10%" y="1%">
+<sop offset="0%" style="stop-color:#1f7;so-paty:." />
+<stop offset="00%" ste="stop-coor:#382f6;sto-pacty:0.8" />
+</ierrient>
+</efs>
+
+<ret widt="19" hgh="080" fil="url(#bcgroundraient)"/>
+
+< opaiy="0.1">
+<pa ="100 800L00 700L300 800L400 600L0 700L600 800L700 600L800 700L900 800L000 600L1100 700L100 800L100 600L100 700L100 00L1600 600L1700 70L8 00L100 600L920 60V0H060L0 600L100 70" fl="#000000"/>
+
+<rct x="150" y="55" th="80" heiht="5" fl="#000000"/>
+<rect x="5" y="4" wth="100" hegt="350" fil="#00000"/>
+<rect ="550" ="50" width="0" hht="" f="#00000"/>
+<ret x="750" y="00" dth="20" het="40" fl="#000000"/>
+<rct x="950" y="48" wdth="00" hght="2" fl="#0000"/>
+<ret ="110" y="" dth="80" heht="28" fll="#000000"/>
+<ret x="350" y="46" wdth="110" heght="4" f="#0000"/>
+<re x="15" ="5" dth="9" heght="26" fll="#000000"/>
+<rect ="1750" ="40" idth="100" heiht="" fl="#0000"/>
+
+<crce c="0" c="0" r="4" fll="#FF222"/>
+<crcl cx="4" c="" r="4" fll="#FFD222"/>
+<crl cx="60" y="45" r="4" fl="#FF222"/>
+<crcle cx="80" c="30" r="4" fi="#FF222"/>
+<crcl cx="10" c="4" r="4" fll="#FFD222"/>
+<crl cx="120" cy="" r="4" fl="#FF222"/>
+<crcle cx="140" c="440" r="4" fll="#FF22"/>
+<re cx="1" c="40" r="4" fill="#FF222"/>
+<circle cx="18" cy="430" r="4" fill="#FF222"/>
+
+<path d="20 4L4 50600 40L00 3L000 20120 0L400 440L6 41L100 0" stroke="#FF222" stroke-wdth="2" fll="none"/>
+
+<crl cx="35" y="25" r="8" fl="#FFF50"/>
+<crcle cx="750" cy="30" r="" fill="#FFF500"/>
+<circe cx="1150" c="80" r="8" fil="#FFF500"/>
+<crcl cx="155" c="320" r="8" fll="#FFF50"/>
+
+<pah ="M30 5030 2L30 20L50 50Z" fill="#00F99"/>
+<ath d="700 100L700 150L750 150L750 100" fll="#00FF99"/>
+<pat ="M1200 130L120 18L120 10L125 13Z" fll="#00FF99"/>
+<path d="1600 110L1600 160L1650 160L1650 110Z" fll="#00FF99"/>
+
+</>
+
+</>

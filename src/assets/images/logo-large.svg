@@ -1,0 +1,6 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="80" height="80" rx="16" fill="#1F2937"/>
+<path d="M40 16L20 36H20L20 52L40 64L60 52L60 36H60L40 16Z" fill="white"/>
+<circle cx="40" cy="36" r="6" fill="#1F2937"/>
+<text x="40" y="45" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="8" font-weight="bold">CAP</text>
+</svg>
