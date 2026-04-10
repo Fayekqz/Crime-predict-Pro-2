@@ -90,7 +90,7 @@ const QuickActions = ({ hasResults, isTraining }) => {
           <Icon name="Navigation" size={20} color="var(--color-primary)" />
           <h3 className="text-lg font-medium text-foreground">Quick Navigation</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {actionItems?.map((item, index) => (
             <Link
               key={index}

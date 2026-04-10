@@ -3,11 +3,23 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 
-const CrimeTrendsChart = () => {
+const CrimeTrendsChart = ({ data: externalData }) => {
   const [timeRange, setTimeRange] = useState('monthly');
   const [selectedCategories, setSelectedCategories] = useState(['total', 'violent', 'property']);
   const [chartData, setChartData] = useState({ daily: [], weekly: [], monthly: [] });
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Re-compute when data prop changes
+  useEffect(() => {
+    if (externalData) {
+      setChartData(computeData(externalData));
+    } else {
+      const raw = localStorage.getItem('crime_data_uploaded');
+      if (raw) {
+        setChartData(computeData(JSON.parse(raw)));
+      }
+    }
+  }, [externalData]);
 
   const isViolent = (v) => {
     const s = String(v || '').toLowerCase();
@@ -39,6 +51,7 @@ const CrimeTrendsChart = () => {
 
   const computeData = (rows) => {
     // 1. Identify valid rows and parse dates
+    if (!Array.isArray(rows)) return { daily: [], weekly: [], monthly: [] };
     const validRows = [];
     let minTime = Infinity;
     let maxTime = -Infinity;
@@ -54,7 +67,7 @@ const CrimeTrendsChart = () => {
       }
     }
 
-    if (validRows.length === 0) return { monthly: [] };
+    if (validRows.length === 0) return { daily: [], weekly: [], monthly: [] };
 
     // 2. Generate all months in range (YYYY-MM)
     const months = [];
@@ -106,31 +119,8 @@ const CrimeTrendsChart = () => {
     }
 
     const monthly = Array.from(monthlyMap.values());
-    return { monthly };
+    return { daily: [], weekly: [], monthly };
   };
-
-  const refreshFromStorage = () => {
-    try {
-      const raw = localStorage.getItem('crime_data_uploaded');
-      if (raw) {
-        const data = JSON.parse(raw);
-        setChartData(computeData(data));
-      } else {
-        setChartData({ monthly: [] });
-      }
-    } catch (e) {
-      setChartData({ monthly: [] });
-    }
-  };
-
-  useEffect(() => {
-    refreshFromStorage();
-    const onStorage = (e) => {
-      if (e?.key === 'crime_data_uploaded') refreshFromStorage();
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
 
   const categoryColors = {
     total: '#1E40AF',

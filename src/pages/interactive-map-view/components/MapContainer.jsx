@@ -23,18 +23,24 @@ const MapContainer = ({
   selectedRegion,
   mapStyle,
   onDataUpdate,
-  showSensitiveAreas,
+  // showSensitiveAreas, // Removed from props to handle locally
   selectedSeverities,
-  activeDrawingTool
+  activeDrawingTool,
+  onHeatmapToggle // Added prop
 }) => {
   const mapRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [mapZoom, setMapZoom] = useState(5);
   const [mapCenter, setMapCenter] = useState({ lat: 20.5937, lng: 78.9629 });
-  const [showPoliceStations, setShowPoliceStations] = useState(false);
-  const [showTrafficCameras, setShowTrafficCameras] = useState(false);
-  const [showCrimeMarkers, setShowCrimeMarkers] = useState(false);
+  
+  // Display Options - Enabled by default as requested
+  const [showPoliceStations, setShowPoliceStations] = useState(true);
+  const [showTrafficCameras, setShowTrafficCameras] = useState(true);
+  const [showCrimeMarkers, setShowCrimeMarkers] = useState(true);
+  const [showClusterMarkers, setShowClusterMarkers] = useState(true);
+  const [showSensitiveAreas, setShowSensitiveAreas] = useState(true);
+
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawnShapes, setDrawnShapes] = useState([]);
   const [currentShape, setCurrentShape] = useState(null);
@@ -836,8 +842,8 @@ const MapContainer = ({
           </div>
         )}
 
-        {/* Area Highlights from CSV Data */}
-        {areaHighlights && areaHighlights.length > 0 && (
+        {/* Area Highlights from CSV Data (Cluster Markers) */}
+        {showClusterMarkers && areaHighlights && areaHighlights.length > 0 && (
           <div className="absolute inset-0 pointer-events-none">
             {areaHighlights?.map((area, idx) => {
               const pos = projectToPercent(area.centerLat, area.centerLng);
@@ -964,10 +970,19 @@ const MapContainer = ({
               <input 
                 type="checkbox" 
                 checked={showHeatmap} 
-                onChange={(e) => setShowHeatmap(e.target.checked)}
+                onChange={(e) => onHeatmapToggle && onHeatmapToggle(e.target.checked)}
                 className="rounded" 
               />
               <span>Crime Heatmap</span>
+            </label>
+            <label className="flex items-center space-x-2 text-sm cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={showClusterMarkers} 
+                onChange={(e) => setShowClusterMarkers(e.target.checked)}
+                className="rounded" 
+              />
+              <span>Cluster Markers</span>
             </label>
             <label className="flex items-center space-x-2 text-sm cursor-pointer">
               <input 
@@ -999,8 +1014,8 @@ const MapContainer = ({
             <label className="flex items-center space-x-2 text-sm cursor-pointer">
               <input 
                 type="checkbox" 
-                checked={!!showSensitiveAreas} 
-                onChange={(e) => setShowSensitiveAreas && setShowSensitiveAreas(e.target.checked)}
+                checked={showSensitiveAreas} 
+                onChange={(e) => setShowSensitiveAreas(e.target.checked)}
                 className="rounded" 
               />
               <span>Sensitive Areas</span>

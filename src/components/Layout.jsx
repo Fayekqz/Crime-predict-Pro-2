@@ -66,7 +66,7 @@ const Layout = () => {
           onToggleSidebar={toggleSidebar} 
         />
         
-        <main className="flex-1 overflow-x-hidden">
+        <main className="flex-1 overflow-x-hidden pt-16">
           <Outlet />
         </main>
       </div>

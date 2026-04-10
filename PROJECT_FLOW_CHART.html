@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrimePredictPro Project Architecture Flow Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #1e3a8a;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        p.subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+        .legend {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            background-color: #f3f4f6;
+            border-radius: 8px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Project Architecture Flow Chart</h1>
+        <p class="subtitle">Complete end-to-end data flow and system architecture for CrimePredictPro</p>
+        
+        <div class="mermaid">
+            graph TD
+                %% Data Ingestion Layer
+                subgraph "1. Data Source Layer"
+                    A[Historical Crime CSV Files] --> B[Data Upload Interface]
+                    B --> C[Data Parser & Validator]
+                end
+
+                %% Storage & Persistence
+                subgraph "2. Storage Layer"
+                    C --> D[(LocalStorage Persistence)]
+                end
+
+                %% Application Logic
+                subgraph "3. Application Logic Layer"
+                    D --> E[Centralized Filtering Engine]
+                    E --> F[Metrics Computation Engine]
+                    E --> G[Geospatial Processor]
+                    E --> H[LSTM Simulation Engine]
+                end
+
+                %% Presentation Layer
+                subgraph "4. Presentation Layer (React Components)"
+                    F --> I[Dashboard: Metric Cards]
+                    F --> J[Dashboard: Trend & Distribution Charts]
+                    G --> K[Map Analysis: Leaflet.js Heatmaps]
+                    H --> L[Prediction Interface: Future Forecasts]
+                end
+
+                %% Model Management
+                subgraph "5. MLOps & Monitoring"
+                    H <--> M[MLflow Integration]
+                    M --> N[Model Registry]
+                    N --> O[Deployment Monitor]
+                end
+
+                %% User Actions
+                subgraph "6. User Actions"
+                    I & J & K & L --> P[Interactive Data Exploration]
+                    P --> Q[Export: CSV / PNG / PDF]
+                end
+
+                %% Styling
+                style A fill:#e0f2fe,stroke:#0369a1
+                style D fill:#fef3c7,stroke:#b45309
+                style E fill:#dcfce7,stroke:#15803d
+                style M fill:#fce7f3,stroke:#be185d
+                style I fill:#f3f4f6,stroke:#374151
+                style J fill:#f3f4f6,stroke:#374151
+                style K fill:#f3f4f6,stroke:#374151
+                style L fill:#f3f4f6,stroke:#374151
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #e0f2fe; border: 1px solid #0369a1;"></div>
+                <span>Data Input</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fef3c7; border: 1px solid #b45309;"></div>
+                <span>Data Storage</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #dcfce7; border: 1px solid #15803d;"></div>
+                <span>Application Logic</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fce7f3; border: 1px solid #be185d;"></div>
+                <span>MLOps Integration</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #f3f4f6; border: 1px solid #374151;"></div>
+                <span>UI Components</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    </script>
+</body>
+</html>

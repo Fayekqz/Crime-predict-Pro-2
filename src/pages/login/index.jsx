@@ -13,38 +13,26 @@ const Login = () => {
     <div 
       className="min-h-screen flex items-center justify-center relative"
       style={{ 
-        background: 'linear-gradient(135deg, #1f2937 0%, #3c82f6 100%)',
-        backgroundSize: 'cover',
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1440' height='900' viewBox='0 0 1440 900'%3E%3Crect width='1440' height='900' fill='%23ffffff'/%3E%3Cg transform='translate(400,360)'%3E%3Crect x='0' y='-40' width='80' height='80' rx='16' fill='%231E3A8A'/%3E%3Cpath d='M40 0 L60 10 V30 C60 40 52 50 40 54 C28 50 20 40 20 30 V10 L40 0 Z' stroke='%23ffffff' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/g%3E%3Ctext x='520' y='360' font-family='system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial' font-size='64' font-weight='600' fill='%231F2937'%3ECrimePredictPro%3C/text%3E%3Ctext x='520' y='416' font-family='system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial' font-size='32' fill='%236B7280'%3EAnalytics Platform%3C/text%3E%3C/svg%3E")`,
+        backgroundSize: '130%',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'
       }}
     >
-      {/* Crime-themed background pattern */}
-      <div 
-        className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
-      
-      {/* Overlay for better readability */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
-      
+      <div className="absolute inset-0 backdrop-blur-xl bg-white/40"></div>
       {/* Content */}
       <div className="relative z-10 w-full max-w-md mx-auto p-6">
         {/* Logo and Branding */}
         <div className="text-center mb-8">
-          <div className="flex justify-center items-center mb-4">
-            <div className="w-12 h-12 mr-3">
-              <Logo />
-            </div>
-            <h1 className="text-3xl font-bold text-white">CrimePredictPro</h1>
+          <div className="flex flex-col items-center">
+            <Logo />
+            <h1 className="mt-3 text-3xl font-bold text-foreground">CrimePredictPro</h1>
+            <p className="text-muted-foreground text-sm">Analytics Platform</p>
           </div>
-          <p className="text-white/80 text-sm">Analytics Platform</p>
         </div>
         
         {/* Login Form Container */}
-        <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl p-8 border border-white/20">
+        <div className="bg-white rounded-xl shadow-2xl p-8 border border-border">
           <LoginForm />
         </div>
       </div>

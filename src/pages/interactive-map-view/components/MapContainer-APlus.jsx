@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { MapContainer as LeafletMap, TileLayer, Circle, Popup, useMap, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -16,6 +16,61 @@ let DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
+
+// Mock Data
+const policeStations = [
+  { id: 1, name: "Delhi Police HQ", coordinates: [28.6308, 77.2177], type: "HQ", address: "ITO, New Delhi" },
+  { id: 2, name: "Mumbai Police Commissioner", coordinates: [19.0760, 72.8777], type: "HQ", address: " Crawford Market, Mumbai" },
+  { id: 3, name: "Bengaluru City Police", coordinates: [12.9716, 77.5946], type: "HQ", address: "NR Road, Bengaluru" },
+  { id: 4, name: "Chennai Police Commissioner", coordinates: [13.0827, 80.2707], type: "HQ", address: "Egmore, Chennai" },
+  { id: 5, name: "Kolkata Police HQ", coordinates: [22.5726, 88.3639], type: "HQ", address: "Lalbazar, Kolkata" },
+  { id: 6, name: "Connaught Place Police Station", coordinates: [28.6314, 77.2169], type: "Station", address: "CP, New Delhi" },
+  { id: 7, name: "Bandra Police Station", coordinates: [19.0597, 72.8295], type: "Station", address: "Bandra West, Mumbai" },
+  { id: 8, name: "Indiranagar Police Station", coordinates: [12.9853, 77.6150], type: "Station", address: "Indiranagar, Bengaluru" },
+  { id: 9, name: "T. Nagar Police Station", coordinates: [13.0415, 80.2338], type: "Station", address: "T. Nagar, Chennai" },
+  { id: 10, name: "Salt Lake Police Station", coordinates: [22.5806, 88.4181], type: "Station", address: "Salt Lake, Kolkata" },
+  { id: 11, name: "Karol Bagh Police Station", coordinates: [28.6538, 77.1902], type: "Station", address: "Karol Bagh, Delhi" },
+  { id: 12, name: "Gurgaon Sector 29 Police Station", coordinates: [28.4595, 77.0266], type: "Station", address: "Sector 29, Gurgaon" },
+  { id: 13, name: "Cyberabad Police Station", coordinates: [17.3616, 78.4747], type: "Station", address: "HITEC City, Hyderabad" },
+  { id: 14, name: "Pune City Police", coordinates: [18.5204, 73.8567], type: "HQ", address: "Camp, Pune" },
+  { id: 15, name: "Ahmedabad Crime Branch", coordinates: [23.0225, 72.5714], type: "HQ", address: "Shahibaug, Ahmedabad" }
+];
+
+const trafficCameras = [
+  { id: 1, name: "Camera-001", coordinates: [28.6139, 77.2090], status: "Active" },
+  { id: 2, name: "Camera-002", coordinates: [19.0760, 72.8777], status: "Active" },
+  { id: 3, name: "Camera-003", coordinates: [12.9716, 77.5946], status: "Maintenance" },
+  { id: 4, name: "Camera-004", coordinates: [13.0827, 80.2707], status: "Active" }
+];
+
+// Custom Icons
+const createIcon = (color, type = 'circle') => {
+    return L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div style="
+            background-color: ${color};
+            width: ${type === 'hq' ? '20px' : '12px'};
+            height: ${type === 'hq' ? '20px' : '12px'};
+            border-radius: ${type === 'camera' ? '2px' : '50%'};
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        "></div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+    });
+};
+
+const icons = {
+    police: createIcon('#3B82F6'),
+    policeHQ: createIcon('#1D4ED8', 'hq'),
+    camera: createIcon('#F59E0B', 'camera'),
+    crime: {
+        violent: createIcon('#EF4444'),
+        property: createIcon('#F59E0B'),
+        drug: createIcon('#8B5CF6'),
+        other: createIcon('#6B7280')
+    }
+};
 
 // Helper component to update map view when bounds change
 const MapController = ({ bounds }) => {
@@ -40,6 +95,11 @@ const MapContainer = ({
   selectedSeverities,
   activeDrawingTool
 }) => {
+  const [showPoliceStations, setShowPoliceStations] = useState(true);
+  const [showTrafficCameras, setShowTrafficCameras] = useState(true);
+  const [showCrimeMarkers, setShowCrimeMarkers] = useState(true);
+  const [showSensitiveAreas, setShowSensitiveAreas] = useState(true);
+
   // 1. Data Processing
   const filteredCrimeData = useMemo(() => {
     // If no initial data, return empty
@@ -157,14 +217,19 @@ const MapContainer = ({
     })).filter(h => h.count > 2); // Only show if more than 2 crimes in area
   }, [filteredCrimeData]);
 
-  // Default center (Chicago/India/World fallback)
-  const defaultCenter = [41.8781, -87.6298]; // Chicago
+  // Compute Highly Sensitive Areas (Top Hotspots)
+  const sensitiveAreas = useMemo(() => {
+    return [...hotspots].sort((a, b) => b.count - a.count).slice(0, 5);
+  }, [hotspots]);
+
+  // Default center (India)
+  const defaultCenter = [20.5937, 78.9629]; // India Center
   
   return (
     <div className="w-full h-full rounded-lg overflow-hidden border border-border relative">
       <LeafletMap 
         center={defaultCenter} 
-        zoom={13} 
+        zoom={5} 
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer
@@ -174,7 +239,7 @@ const MapContainer = ({
         
         {mapBounds && <MapController bounds={mapBounds} />}
 
-        {/* Render Hotspots (Red Zones) */}
+        {/* Render Hotspots (Red Zones/Cluster Markers) */}
         {showHeatmap && hotspots.map((spot, idx) => (
             <Circle
                 key={`hotspot-${idx}`}
@@ -182,8 +247,8 @@ const MapContainer = ({
                 radius={spot.radius}
                 pathOptions={{
                     color: 'red',
-                    fillColor: '#ef4444', // Tailwind red-500
-                    fillOpacity: 0.3 + (spot.intensity * 0.4), // More intense = more opaque
+                    fillColor: '#ef4444', 
+                    fillOpacity: 0.3 + (spot.intensity * 0.4), 
                     stroke: false
                 }}
             >
@@ -194,44 +259,149 @@ const MapContainer = ({
             </Circle>
         ))}
 
-        {/* Render Individual Crime Markers (Optional, if not too many or if zoomed in) */}
-        {/* We can limit this to only show if < 500 points or something, or just show all for now */}
-        {filteredCrimeData.slice(0, 1000).map((crime, idx) => (
-            <Marker 
-                key={crime.id || idx} 
-                position={crime.coordinates}
-                eventHandlers={{
-                    click: () => onMarkerClick && onMarkerClick(crime)
+        {/* Highly Sensitive Areas (Pulsing Effect) */}
+        {showSensitiveAreas && sensitiveAreas.map((area, idx) => (
+            <Circle
+                key={`sensitive-${idx}`}
+                center={[area.lat, area.lng]}
+                radius={area.radius * 0.8}
+                pathOptions={{
+                    color: '#991b1b', // Darker red
+                    fillColor: '#7f1d1d',
+                    fillOpacity: 0.6,
+                    weight: 2,
+                    dashArray: '5, 10'
                 }}
             >
                 <Popup>
-                    <div className="p-1">
-                        <div className="font-bold text-sm">{crime.type || crime.category}</div>
-                        <div className="text-xs text-gray-600">{crime.location}</div>
-                        <div className="text-xs mt-1">{crime.date} {crime.time}</div>
-                        <div className={`text-xs mt-1 font-semibold ${
-                            crime.severity === 'High' ? 'text-red-600' : 
-                            crime.severity === 'Medium' ? 'text-yellow-600' : 'text-blue-600'
-                        }`}>
-                            Severity: {crime.severity}
-                        </div>
-                    </div>
+                    <div className="text-sm font-bold text-red-900">CRITICAL SENSITIVE ZONE</div>
+                    <div className="text-xs font-semibold">Extreme Caution Advised</div>
+                    <div className="text-xs">Incidents: {area.count}</div>
                 </Popup>
-            </Marker>
+            </Circle>
         ))}
+
+        {/* Police Stations */}
+        {showPoliceStations && policeStations.map(station => (
+          <Marker 
+            key={`police-${station.id}`}
+            position={station.coordinates}
+            icon={station.type === 'HQ' ? icons.policeHQ : icons.police}
+          >
+            <Popup>
+              <div className="font-semibold">{station.name}</div>
+              <div className="text-xs text-gray-600">{station.address}</div>
+            </Popup>
+          </Marker>
+        ))}
+
+        {/* Traffic Cameras */}
+        {showTrafficCameras && trafficCameras.map(camera => (
+          <Marker 
+            key={`camera-${camera.id}`}
+            position={camera.coordinates}
+            icon={icons.camera}
+          >
+            <Popup>
+              <div className="font-semibold">{camera.name}</div>
+              <div className="text-xs">Status: {camera.status}</div>
+            </Popup>
+          </Marker>
+        ))}
+
+        {/* Crime Markers */}
+        {showCrimeMarkers && filteredCrimeData.map((crime, idx) => {
+            if (!crime.coordinates) return null;
+            // Determine icon based on type
+            let icon = icons.crime.other;
+            const type = (crime.type || crime.category || '').toLowerCase();
+            if (type.includes('assault') || type.includes('homicide') || type.includes('violent')) icon = icons.crime.violent;
+            else if (type.includes('theft') || type.includes('burglary')) icon = icons.crime.property;
+            else if (type.includes('drug')) icon = icons.crime.drug;
+
+            return (
+              <Marker 
+                key={`crime-${idx}`}
+                position={crime.coordinates}
+                icon={icon}
+              >
+                <Popup>
+                  <div className="font-semibold">{crime.type}</div>
+                  <div className="text-xs">{crime.location}</div>
+                  <div className="text-xs">{crime.date}</div>
+                </Popup>
+              </Marker>
+            );
+        })}
         
       </LeafletMap>
+
+      {/* Layer Controls */}
+      <div className="absolute top-4 right-4 z-[1000] bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
+          <h4 className="text-sm font-medium text-gray-900 mb-2">Map Layers</h4>
+          <div className="space-y-2">
+            <label className="flex items-center space-x-2 text-sm cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={showHeatmap} 
+                onChange={(e) => onHeatmapToggle && onHeatmapToggle(e.target.checked)}
+                className="rounded" 
+              />
+              <span>Cluster Heatmap</span>
+            </label>
+            <label className="flex items-center space-x-2 text-sm cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={showSensitiveAreas}
+                onChange={(e) => setShowSensitiveAreas(e.target.checked)}
+                className="rounded" 
+              />
+              <span>Sensitive Areas</span>
+            </label>
+            <label className="flex items-center space-x-2 text-sm cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={showCrimeMarkers}
+                onChange={(e) => setShowCrimeMarkers(e.target.checked)}
+                className="rounded" 
+              />
+              <span>Crime Markers</span>
+            </label>
+            <label className="flex items-center space-x-2 text-sm cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={showPoliceStations}
+                onChange={(e) => setShowPoliceStations(e.target.checked)}
+                className="rounded" 
+              />
+              <span>Police Stations</span>
+            </label>
+            <label className="flex items-center space-x-2 text-sm cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={showTrafficCameras}
+                onChange={(e) => setShowTrafficCameras(e.target.checked)}
+                className="rounded" 
+              />
+              <span>Traffic Cameras</span>
+            </label>
+          </div>
+      </div>
 
       {/* Legend / Info Overlay */}
       <div className="absolute bottom-4 left-4 z-[1000] bg-white p-3 rounded-lg shadow-lg border border-gray-200">
         <h4 className="text-xs font-bold mb-2">Map Legend</h4>
         <div className="flex items-center gap-2 mb-1">
             <div className="w-3 h-3 rounded-full bg-red-500 opacity-50"></div>
-            <span className="text-xs">High Crime Zone (Red Alert)</span>
+            <span className="text-xs">High Crime Zone</span>
         </div>
-        <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow-sm"></div>
-            <span className="text-xs">Incident Marker</span>
+        <div className="flex items-center gap-2 mb-1">
+             <div className="w-3 h-3 rounded-full bg-blue-500 border border-white"></div>
+             <span className="text-xs">Police Station</span>
+        </div>
+        <div className="flex items-center gap-2 mb-1">
+             <div className="w-3 h-3 bg-yellow-500 border border-white rounded-sm"></div>
+             <span className="text-xs">Traffic Camera</span>
         </div>
       </div>
     </div>

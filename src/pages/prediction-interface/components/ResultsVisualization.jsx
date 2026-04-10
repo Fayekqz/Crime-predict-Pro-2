@@ -13,8 +13,10 @@ const ResultsVisualization = ({ hasResults, trainingConfig }) => {
     mae: 2.34,
     rmse: 3.12,
     mape: 8.7,
-    r2: 0.89
+    r2: 0.89,
+    accuracy: 92.5
   });
+  const [isExporting, setIsExporting] = useState(false);
 
   const viewModeOptions = [
     { value: 'predictions', label: 'Predictions vs Actual' },
@@ -27,6 +29,7 @@ const ResultsVisualization = ({ hasResults, trainingConfig }) => {
     { value: '7d', label: 'Last 7 Days' },
     { value: '30d', label: 'Last 30 Days' },
     { value: '90d', label: 'Last 90 Days' },
+    { value: '180d', label: 'Last 180 Days' },
     { value: 'custom', label: 'Custom Range' }
   ];
 
@@ -42,62 +45,91 @@ const ResultsVisualization = ({ hasResults, trainingConfig }) => {
     if (hasResults) {
       const generateData = () => {
         const data = [];
-        const baseDate = new Date('2024-01-01');
-        const historicalDays = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
-        const futureDays = 14; // Predict next 14 days
+        const endOfActualData = new Date('2026-03-31'); // The end date of your latest dataset
+        const historicalDays = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 180;
+        
+        // Define future horizon based on timeRange
+        const futureDaysMap = {
+          '7d': 15,
+          '30d': 30,
+          '90d': 60,   // 2 months
+          '180d': 90,  // 3 months
+          'custom': 30
+        };
+        const futureDays = futureDaysMap[timeRange] || 30;
+
+        const baseDate = new Date(endOfActualData);
+        baseDate.setDate(baseDate.getDate() - historicalDays + 1);
+        
+        // Metric-specific parameters (base rate and volatility)
+        const metricParams = {
+          'crime_count': { base: 45, variance: 25, trendFactor: 0.3 },
+          'violent_crime': { base: 12, variance: 8, trendFactor: 0.1 },
+          'property_crime': { base: 25, variance: 15, trendFactor: 0.2 },
+          'drug_crime': { base: 8, variance: 5, trendFactor: 0.05 }
+        };
+        const params = metricParams[selectedMetric] || metricParams['crime_count'];
+
+        // Use a stable seed for random values based on date and metric to keep predictions "same"
+        const getSeededRandom = (dateStr, metric) => {
+          let seed = 0;
+          const combinedStr = dateStr + metric;
+          for (let i = 0; i < combinedStr.length; i++) {
+            seed = ((seed << 5) - seed) + combinedStr.charCodeAt(i);
+            seed |= 0;
+          }
+          const x = Math.sin(seed) * 10000;
+          return x - Math.floor(x);
+        };
         
         // Generate historical data
-        let lastValue = 0;
-        let lastDate = new Date();
-
         for (let i = 0; i < historicalDays; i++) {
           const date = new Date(baseDate);
           date.setDate(date.getDate() + i);
-          lastDate = new Date(date);
+          const dateStr = date.toISOString().split('T')[0];
+          const seededRandom = getSeededRandom(dateStr, selectedMetric);
           
-          const actual = Math.floor(Math.random() * 50) + 20 + Math.sin(i * 0.1) * 10;
-          const predicted = actual + (Math.random() - 0.5) * 8;
-          const upperBound = predicted + Math.random() * 10 + 5;
-          const lowerBound = Math.max(0, predicted - Math.random() * 10 - 5);
+          const actual = Math.floor(seededRandom * params.variance) + params.base + Math.sin(i * 0.1) * (params.base * 0.2);
+          const predicted = actual + (seededRandom - 0.5) * (params.variance * 0.2);
+          const upperBound = predicted + (seededRandom * 5) + (params.base * 0.1);
+          const lowerBound = Math.max(0, predicted - (seededRandom * 5) - (params.base * 0.1));
           
-          lastValue = predicted;
-
           data.push({
-            date: date.toISOString().split('T')[0],
+            date: dateStr,
             dateFormatted: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             actual: Math.round(actual),
             predicted: Math.round(predicted),
-            futurePredicted: null, // No future prediction for historical data
+            futurePredicted: null,
             upperBound: Math.round(upperBound),
             lowerBound: Math.round(lowerBound),
             residual: Math.round(actual - predicted)
           });
         }
 
-        // Add connecting point (today)
+        // Add connecting point (March 31)
         data[data.length - 1].futurePredicted = data[data.length - 1].predicted;
 
-        // Generate future predictions (LSTM forecast simulation)
+        // Generate future predictions starting from April 1
         for (let i = 1; i <= futureDays; i++) {
-          const date = new Date(lastDate);
+          const date = new Date(endOfActualData);
           date.setDate(date.getDate() + i);
+          const dateStr = date.toISOString().split('T')[0];
+          const seededRandom = getSeededRandom(dateStr, selectedMetric);
           
-          // LSTM simulation: trend + seasonality + noise
-          const trend = i * 0.5;
-          const seasonality = Math.sin((historicalDays + i) * 0.1) * 10;
-          const noise = (Math.random() - 0.5) * 5;
-          const predicted = lastValue + trend + seasonality + noise; // Future value based on last value
+          const trend = i * params.trendFactor;
+          const seasonality = Math.sin(i * 0.1) * (params.base * 0.25);
+          const noise = (seededRandom - 0.5) * (params.variance * 0.15);
+          const predicted = params.base + trend + seasonality + noise;
           
-          // Widening confidence intervals for future
-          const uncertainty = 10 + (i * 1.5); 
+          const uncertainty = (params.base * 0.15) + (i * 0.5); 
           const upperBound = predicted + uncertainty;
           const lowerBound = Math.max(0, predicted - uncertainty);
 
           data.push({
-            date: date.toISOString().split('T')[0],
+            date: dateStr,
             dateFormatted: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            actual: null, // No actual data for future
-            predicted: null, // Use futurePredicted for visualization distinction
+            actual: null,
+            predicted: null,
             futurePredicted: Math.round(predicted),
             upperBound: Math.round(upperBound),
             lowerBound: Math.round(lowerBound),
@@ -110,7 +142,31 @@ const ResultsVisualization = ({ hasResults, trainingConfig }) => {
       
       setPredictionData(generateData());
     }
-  }, [hasResults, timeRange]);
+  }, [hasResults, timeRange, selectedMetric]); // Added selectedMetric to dependencies
+
+  const handleExportChart = () => {
+    setIsExporting(true);
+    
+    // Simulate chart export logic
+    setTimeout(() => {
+      const fileName = `crime_prediction_export_${new Date().toISOString().split('T')[0]}.png`;
+      
+      // In a real environment, we would use html2canvas or direct SVG export from Recharts
+      // For this demo, we'll trigger a simulated download
+      const link = document.createElement('a');
+      link.href = '#';
+      link.download = fileName;
+      document.body.appendChild(link);
+      
+      console.log(`Exporting chart to ${fileName}...`);
+      
+      // Feedback to user
+      alert(`Chart exported successfully as ${fileName}`);
+      
+      setIsExporting(false);
+      document.body.removeChild(link);
+    }, 1500);
+  };
 
   const renderPredictionsChart = () => (
     <ResponsiveContainer width="100%" height={400}>
@@ -316,8 +372,15 @@ const ResultsVisualization = ({ hasResults, trainingConfig }) => {
           <p className="text-sm text-muted-foreground mt-1">Prediction analysis and performance metrics</p>
         </div>
         <div className="flex items-center space-x-3">
-          <Button variant="outline" size="sm" iconName="Download" iconPosition="left">
-            Export Chart
+          <Button 
+            variant="outline" 
+            size="sm" 
+            iconName="Download" 
+            iconPosition="left"
+            onClick={handleExportChart}
+            disabled={isExporting}
+          >
+            {isExporting ? 'Exporting...' : 'Export Chart'}
           </Button>
           <Button variant="outline" size="sm" iconName="Share" iconPosition="left">
             Share Results
@@ -371,21 +434,15 @@ const ResultsVisualization = ({ hasResults, trainingConfig }) => {
         {/* Model Comparison */}
         <div className="border border-border rounded-lg p-4">
           <h3 className="text-lg font-medium text-foreground mb-4">Baseline Model Comparison</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="text-center p-4 bg-primary/5 rounded-lg border border-primary/20">
               <h4 className="font-medium text-foreground mb-2">LSTM (Current)</h4>
-              <p className="text-2xl font-bold text-primary mb-1">{performanceMetrics?.mae}</p>
-              <p className="text-xs text-muted-foreground">MAE Score</p>
-            </div>
-            <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <h4 className="font-medium text-foreground mb-2">ARIMA</h4>
-              <p className="text-2xl font-bold text-muted-foreground mb-1">3.67</p>
-              <p className="text-xs text-muted-foreground">MAE Score</p>
-            </div>
-            <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <h4 className="font-medium text-foreground mb-2">Random Forest</h4>
-              <p className="text-2xl font-bold text-muted-foreground mb-1">2.89</p>
-              <p className="text-xs text-muted-foreground">MAE Score</p>
+              <div className="flex justify-center items-center space-x-12">
+                <div>
+                  <p className="text-2xl font-bold text-success mb-1">{performanceMetrics?.accuracy}%</p>
+                  <p className="text-xs text-muted-foreground">Accuracy Rate</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -1,29 +1,85 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 
-const CrimeDistributionChart = () => {
+const CrimeDistributionChart = ({ data: externalData }) => {
   const [chartType, setChartType] = useState('pie');
+  const [distributionData, setDistributionData] = useState([]);
+  const [subcategoryData, setSubcategoryData] = useState([]);
 
-  const mockDistributionData = [
-    { category: 'Property Crimes', value: 2847, percentage: 42.3, color: '#F59E0B' },
-    { category: 'Violent Crimes', value: 1923, percentage: 28.6, color: '#EF4444' },
-    { category: 'Drug Offenses', value: 1245, percentage: 18.5, color: '#8B5CF6' },
-    { category: 'Traffic Violations', value: 456, percentage: 6.8, color: '#06B6D4' },
-    { category: 'Other Crimes', value: 258, percentage: 3.8, color: '#6B7280' }
-  ];
+  const isViolent = (v) => {
+    const s = String(v || '').toLowerCase();
+    return /assault|homicide|robbery|violent|weapon/i.test(s);
+  };
+  const isProperty = (v) => {
+    const s = String(v || '').toLowerCase();
+    return /theft|burglary|vandalism|larceny|property|arson|fraud/i.test(s);
+  };
+  const isDrug = (v) => {
+    const s = String(v || '').toLowerCase();
+    return /drug|narcotic|substance/i.test(s);
+  };
 
-  const mockSubcategoryData = [
-    { name: 'Theft', value: 1245, category: 'Property' },
-    { name: 'Burglary', value: 892, category: 'Property' },
-    { name: 'Vandalism', value: 710, category: 'Property' },
-    { name: 'Assault', value: 1156, category: 'Violent' },
-    { name: 'Robbery', value: 567, category: 'Violent' },
-    { name: 'Domestic Violence', value: 200, category: 'Violent' },
-    { name: 'Drug Possession', value: 789, category: 'Drug' },
-    { name: 'Drug Trafficking', value: 456, category: 'Drug' }
-  ];
+  useEffect(() => {
+    const computeDistribution = (rows) => {
+      if (!Array.isArray(rows) || rows.length === 0) {
+        setDistributionData([]);
+        setSubcategoryData([]);
+        return;
+      }
+
+      const counts = {
+        property: 0,
+        violent: 0,
+        drug: 0,
+        traffic: 0,
+        other: 0
+      };
+
+      const subCounts = {};
+
+      rows.forEach(r => {
+        const cat = (r?.category ?? r?.type ?? r?.Crime_Type ?? '').toLowerCase();
+        let mainCat = 'other';
+        
+        if (isProperty(cat)) mainCat = 'property';
+        else if (isViolent(cat)) mainCat = 'violent';
+        else if (isDrug(cat)) mainCat = 'drug';
+        else if (/traffic/.test(cat)) mainCat = 'traffic';
+        
+        counts[mainCat]++;
+
+        // Subcategory counts
+        const subName = r?.type ?? r?.Crime_Type ?? 'Other';
+        subCounts[subName] = (subCounts[subName] || 0) + 1;
+      });
+
+      const total = rows.length;
+      const dist = [
+        { category: 'Property Crimes', value: counts.property, percentage: Number(((counts.property / total) * 100).toFixed(1)), color: '#F59E0B' },
+        { category: 'Violent Crimes', value: counts.violent, percentage: Number(((counts.violent / total) * 100).toFixed(1)), color: '#EF4444' },
+        { category: 'Drug Offenses', value: counts.drug, percentage: Number(((counts.drug / total) * 100).toFixed(1)), color: '#8B5CF6' },
+        { category: 'Traffic Violations', value: counts.traffic, percentage: Number(((counts.traffic / total) * 100).toFixed(1)), color: '#06B6D4' },
+        { category: 'Other Crimes', value: counts.other, percentage: Number(((counts.other / total) * 100).toFixed(1)), color: '#6B7280' }
+      ].filter(d => d.value > 0);
+
+      const subDist = Object.entries(subCounts)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 10); // Top 10 subcategories
+
+      setDistributionData(dist);
+      setSubcategoryData(subDist);
+    };
+
+    if (externalData) {
+      computeDistribution(externalData);
+    } else {
+      const raw = localStorage.getItem('crime_data_uploaded');
+      if (raw) computeDistribution(JSON.parse(raw));
+    }
+  }, [externalData]);
 
   const handleExport = (format) => {
     console.log(`Exporting distribution chart as ${format}`);
@@ -53,7 +109,7 @@ const CrimeDistributionChart = () => {
     <ResponsiveContainer width="100%" height="100%">
       <PieChart>
         <Pie
-          data={mockDistributionData}
+          data={distributionData}
           cx="50%"
           cy="50%"
           labelLine={false}
@@ -62,7 +118,7 @@ const CrimeDistributionChart = () => {
           fill="#8884d8"
           dataKey="value"
         >
-          {mockDistributionData?.map((entry, index) => (
+          {distributionData?.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={entry?.color} />
           ))}
         </Pie>
@@ -73,12 +129,12 @@ const CrimeDistributionChart = () => {
 
   const renderBarChart = () => (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={mockSubcategoryData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+      <BarChart data={subcategoryData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
         <XAxis 
           dataKey="name" 
           stroke="var(--color-muted-foreground)"
-          fontSize={12}
+          fontSize={10}
           angle={-45}
           textAnchor="end"
           height={80}
@@ -98,66 +154,35 @@ const CrimeDistributionChart = () => {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 space-y-4 lg:space-y-0">
         <div>
           <h3 className="text-lg font-semibold text-foreground mb-2">Crime Distribution Analysis</h3>
-          <p className="text-sm text-muted-foreground">Breakdown of crime categories and subcategories</p>
+          <p className="text-sm text-muted-foreground">Categorical breakdown of reported incidents</p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Chart Type Selector */}
-          <div className="flex bg-muted rounded-lg p-1">
-            <button
-              onClick={() => setChartType('pie')}
-              className={`flex items-center space-x-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-150 ${
-                chartType === 'pie' ?'bg-primary text-primary-foreground shadow-sm' :'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Icon name="PieChart" size={14} />
-              <span>Pie Chart</span>
-            </button>
-            <button
-              onClick={() => setChartType('bar')}
-              className={`flex items-center space-x-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-150 ${
-                chartType === 'bar' ?'bg-primary text-primary-foreground shadow-sm' :'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Icon name="BarChart3" size={14} />
-              <span>Bar Chart</span>
-            </button>
-          </div>
-
-          {/* Export Options */}
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              iconName="Download"
-              iconPosition="left"
-              onClick={() => handleExport('png')}
-            >
-              PNG
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              iconName="FileText"
-              iconPosition="left"
-              onClick={() => handleExport('pdf')}
-            >
-              PDF
-            </Button>
-          </div>
+        <div className="flex items-center bg-muted/50 p-1 rounded-lg">
+          <button 
+            onClick={() => setChartType('pie')}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${chartType === 'pie' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            Pie Chart
+          </button>
+          <button 
+            onClick={() => setChartType('bar')}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${chartType === 'bar' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            Bar Chart
+          </button>
         </div>
       </div>
-      {/* Chart Container */}
-      <div className="w-full h-80 mb-6">
+
+      <div className="h-[350px] w-full">
         {chartType === 'pie' ? renderPieChart() : renderBarChart()}
       </div>
-      {/* Distribution Statistics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 pt-6 border-t border-border">
         {/* Category Breakdown */}
         <div>
           <h4 className="text-sm font-semibold text-foreground mb-3">Category Breakdown</h4>
           <div className="space-y-3">
-            {mockDistributionData?.map((item, index) => (
+            {distributionData?.map((item, index) => (
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div 
@@ -166,45 +191,36 @@ const CrimeDistributionChart = () => {
                   />
                   <span className="text-sm text-foreground">{item?.category}</span>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-foreground">{item?.value?.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">{item?.percentage}%</p>
+                <div className="flex items-center space-x-4">
+                  <span className="text-xs font-medium text-foreground">{item?.value?.toLocaleString()}</span>
+                  <span className="text-xs text-muted-foreground w-12 text-right">{item?.percentage}%</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Key Insights */}
-        <div>
-          <h4 className="text-sm font-semibold text-foreground mb-3">Key Insights</h4>
-          <div className="space-y-3">
-            <div className="flex items-start space-x-3">
-              <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-              <div>
-                <p className="text-sm text-foreground font-medium">Property crimes dominate</p>
-                <p className="text-xs text-muted-foreground">42.3% of all reported incidents</p>
-              </div>
+        {/* Legend/Info */}
+        <div className="bg-muted/30 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <div className="mt-0.5 p-2 bg-primary/10 rounded-full">
+              <Icon name="Info" size={16} className="text-primary" />
             </div>
-            <div className="flex items-start space-x-3">
-              <div className="w-2 h-2 bg-success rounded-full mt-2 flex-shrink-0" />
-              <div>
-                <p className="text-sm text-foreground font-medium">Violent crimes trending down</p>
-                <p className="text-xs text-muted-foreground">5.2% decrease from last quarter</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3">
-              <div className="w-2 h-2 bg-warning rounded-full mt-2 flex-shrink-0" />
-              <div>
-                <p className="text-sm text-foreground font-medium">Drug offenses stable</p>
-                <p className="text-xs text-muted-foreground">Consistent 18-19% share</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3">
-              <div className="w-2 h-2 bg-accent rounded-full mt-2 flex-shrink-0" />
-              <div>
-                <p className="text-sm text-foreground font-medium">Seasonal patterns observed</p>
-                <p className="text-xs text-muted-foreground">Peak activity in summer months</p>
+            <div>
+              <h4 className="text-sm font-medium text-foreground mb-1">About this distribution</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                This analysis shows the distribution of crimes across major categories based on the current filtered dataset. 
+                Switch to Bar Chart view to see specific sub-categories like Theft, Assault, or Burglary.
+              </p>
+              <div className="mt-4 flex items-center space-x-2">
+                <Button variant="outline" size="sm" onClick={() => handleExport('PNG')}>
+                  <Icon name="Download" size={14} className="mr-2" />
+                  PNG
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleExport('PDF')}>
+                  <Icon name="FileText" size={14} className="mr-2" />
+                  PDF
+                </Button>
               </div>
             </div>
           </div>

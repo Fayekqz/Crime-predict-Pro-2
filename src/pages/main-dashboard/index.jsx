@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import MetricsCard from './components/MetricsCard';
 import CrimeTrendsChart from './components/CrimeTrendsChart';
@@ -8,7 +8,15 @@ import QuickActions from './components/QuickActions';
 import NotificationPanel from './components/NotificationPanel';
 
 const MainDashboard = () => {
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState({
+    dateRange: { start: '2024-01-01', end: '2026-03-31' },
+    region: '',
+    city: '',
+    crimeTypes: [],
+    timeOfDay: '',
+    severity: ''
+  });
+  const [filteredData, setFilteredData] = useState([]);
   const [dashboardData, setDashboardData] = useState({
     totalCrimes: null,
     violentCrimes: null,
@@ -18,83 +26,99 @@ const MainDashboard = () => {
     responseTime: null
   });
 
-  // Mock metrics data
-  const metricsData = [
-    {
-      title: 'Total Crimes',
-      value: dashboardData?.totalCrimes != null ? dashboardData?.totalCrimes?.toLocaleString() : 'N/A',
-      change: '+2.3%',
-      changeType: 'increase',
-      icon: 'AlertTriangle',
-      description: 'Last 30 days'
-    },
-    {
-      title: 'Violent Crimes',
-      value: dashboardData?.violentCrimes != null ? dashboardData?.violentCrimes?.toLocaleString() : 'N/A',
-      change: '-5.2%',
-      changeType: 'decrease',
-      icon: 'Shield',
-      description: 'Trending downward'
-    },
-    {
-      title: 'Property Crimes',
-      value: dashboardData?.propertyCrimes != null ? dashboardData?.propertyCrimes?.toLocaleString() : 'N/A',
-      change: '+1.8%',
-      changeType: 'increase',
-      icon: 'Home',
-      description: 'Slight increase'
-    },
-    {
-      title: 'Drug Offenses',
-      value: dashboardData?.drugOffenses != null ? dashboardData?.drugOffenses?.toLocaleString() : 'N/A',
-      change: '0.0%',
-      changeType: 'neutral',
-      icon: 'Pill',
-      description: 'Stable trend'
-    },
-    {
-      title: 'Clearance Rate',
-      value: dashboardData?.clearanceRate != null ? `${dashboardData?.clearanceRate}%` : 'N/A',
-      change: '+3.1%',
-      changeType: 'increase',
-      icon: 'CheckCircle',
-      description: 'Cases solved'
-    },
-    {
-      title: 'Avg Response Time',
-      value: dashboardData?.responseTime != null ? `${dashboardData?.responseTime} min` : 'N/A',
-      change: '-0.8%',
-      changeType: 'decrease',
-      icon: 'Clock',
-      description: 'Emergency calls'
+  // Helper to parse dates correctly
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d;
+    const match = String(dateStr).match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+    if (match) {
+        const [_, day, month, year] = match;
+        const d2 = new Date(`${year}-${month}-${day}`);
+        if (!isNaN(d2.getTime())) return d2;
     }
-  ];
-
-  const handleFiltersChange = (newFilters) => {
-    setFilters(newFilters);
-    // Mock filter application - in real app, this would trigger API calls
-    console.log('Filters applied:', newFilters);
+    return null;
   };
 
-  const computeFromStorage = () => {
+  const computeFromStorage = useCallback(() => {
     const isViolent = (v) => {
       const s = String(v || '').toLowerCase();
-      return /assault|homicide|robbery|violent/i.test(s);
+      return /assault|homicide|robbery|violent|weapon/i.test(s);
     };
     const isProperty = (v) => {
       const s = String(v || '').toLowerCase();
-      return /theft|burglary|vandalism|larceny|property/i.test(s);
+      return /theft|burglary|vandalism|larceny|property|arson|fraud/i.test(s);
     };
     const isDrug = (v) => {
       const s = String(v || '').toLowerCase();
-      return /drug/i.test(s);
+      return /drug|narcotic|substance/i.test(s);
     };
 
     try {
       const raw = localStorage.getItem('crime_data_uploaded');
       if (raw) {
-        const data = JSON.parse(raw);
-        const totalCrimes = Array.isArray(data) ? data.length : 0;
+        const allData = JSON.parse(raw);
+        
+        // Apply Filters
+        const filtered = allData.filter(d => {
+          // 1. Date Range Filter
+          const crimeDate = parseDate(d.date || d.Date);
+          if (filters.dateRange.start) {
+            const start = new Date(filters.dateRange.start);
+            if (crimeDate && crimeDate < start) return false;
+          }
+          if (filters.dateRange.end) {
+            const end = new Date(filters.dateRange.end);
+            if (crimeDate && crimeDate > end) return false;
+          }
+
+          // 2. Region Filter
+          if (filters.region && String(d.region || d.District || '').toLowerCase() !== filters.region.toLowerCase()) {
+            return false;
+          }
+
+          // 3. City Filter
+          if (filters.city && String(d.city || d.Address || '').toLowerCase().indexOf(filters.city.toLowerCase()) === -1) {
+            return false;
+          }
+
+          // 4. Crime Types Filter
+          if (filters.crimeTypes.length > 0) {
+            const crimeCat = (d.category || d.type || d.Crime_Type || '').toLowerCase();
+            const matches = filters.crimeTypes.some(type => {
+                if (type === 'violent') return isViolent(crimeCat);
+                if (type === 'property') return isProperty(crimeCat);
+                if (type === 'drug') return isDrug(crimeCat);
+                return crimeCat.includes(type.toLowerCase());
+            });
+            if (!matches) return false;
+          }
+
+          // 5. Severity Filter (if data has severity)
+          if (filters.severity && String(d.severity || '').toLowerCase() !== filters.severity.toLowerCase()) {
+            return false;
+          }
+
+          // 6. Time of Day Filter
+          if (filters.timeOfDay) {
+            const timeStr = d.time || d.Time || '';
+            if (timeStr) {
+                const hour = parseInt(timeStr.split(':')[0]);
+                if (!isNaN(hour)) {
+                    if (filters.timeOfDay === 'morning' && (hour < 6 || hour >= 12)) return false;
+                    if (filters.timeOfDay === 'afternoon' && (hour < 12 || hour >= 18)) return false;
+                    if (filters.timeOfDay === 'evening' && (hour < 18 || hour >= 24)) return false;
+                    if (filters.timeOfDay === 'night' && (hour < 0 || hour >= 6)) return false;
+                }
+            }
+          }
+
+          return true;
+        });
+
+        setFilteredData(filtered);
+
+        const totalCrimes = filtered.length;
         let violentCrimes = 0;
         let propertyCrimes = 0;
         let drugOffenses = 0;
@@ -102,22 +126,24 @@ const MainDashboard = () => {
         let respSum = 0;
         let respCount = 0;
 
-        for (const d of data || []) {
-          const cat = d?.category ?? d?.type;
+        for (const d of filtered) {
+          const cat = d.category || d.type || d.Crime_Type;
           if (isViolent(cat)) violentCrimes++;
           else if (isProperty(cat)) propertyCrimes++;
           if (isDrug(cat)) drugOffenses++;
-          const status = String(d?.status || '').toLowerCase();
-          if (/(resolved|closed)/.test(status)) resolved++;
-          const rm = d?.responseMinutes;
+          
+          const status = String(d.status || d.Status || '').toLowerCase();
+          if (/(resolved|closed|cleared)/.test(status)) resolved++;
+          
+          const rm = d.responseMinutes || d.Response_Time_Minutes;
           if (typeof rm === 'number' && isFinite(rm)) {
             respSum += rm;
             respCount += 1;
           }
         }
 
-        const clearanceRate = totalCrimes > 0 ? Number(((resolved / totalCrimes) * 100).toFixed(1)) : null;
-        const responseTime = respCount > 0 ? Number((respSum / respCount).toFixed(1)) : null;
+        const clearanceRate = totalCrimes > 0 ? Number(((resolved / totalCrimes) * 100).toFixed(1)) : 0;
+        const responseTime = respCount > 0 ? Number((respSum / respCount).toFixed(1)) : 0;
 
         setDashboardData({
           totalCrimes,
@@ -128,6 +154,7 @@ const MainDashboard = () => {
           responseTime
         });
       } else {
+        setFilteredData([]);
         setDashboardData({
           totalCrimes: null,
           violentCrimes: null,
@@ -140,11 +167,67 @@ const MainDashboard = () => {
     } catch (e) {
       console.error('Failed to load uploaded data:', e);
     }
+  }, [filters]);
+
+  const handleFiltersChange = (newFilters) => {
+    setFilters(newFilters);
   };
+
+  // Metrics data derived from dashboardData
+  const metricsData = useMemo(() => [
+    {
+      title: 'Total Crimes',
+      value: dashboardData?.totalCrimes != null ? dashboardData?.totalCrimes?.toLocaleString() : 'N/A',
+      change: '+2.3%',
+      changeType: 'increase',
+      icon: 'AlertTriangle',
+      description: 'Filtered range'
+    },
+    {
+      title: 'Violent Crimes',
+      value: dashboardData?.violentCrimes != null ? dashboardData?.violentCrimes?.toLocaleString() : 'N/A',
+      change: '-5.2%',
+      changeType: 'decrease',
+      icon: 'Shield',
+      description: 'Filtered range'
+    },
+    {
+      title: 'Property Crimes',
+      value: dashboardData?.propertyCrimes != null ? dashboardData?.propertyCrimes?.toLocaleString() : 'N/A',
+      change: '+1.8%',
+      changeType: 'increase',
+      icon: 'Home',
+      description: 'Filtered range'
+    },
+    {
+      title: 'Drug Offenses',
+      value: dashboardData?.drugOffenses != null ? dashboardData?.drugOffenses?.toLocaleString() : 'N/A',
+      change: '0.0%',
+      changeType: 'neutral',
+      icon: 'Pill',
+      description: 'Filtered range'
+    },
+    {
+      title: 'Clearance Rate',
+      value: dashboardData?.clearanceRate != null ? `${dashboardData?.clearanceRate}%` : 'N/A',
+      change: '+3.1%',
+      changeType: 'increase',
+      icon: 'CheckCircle',
+      description: 'Filtered range'
+    },
+    {
+      title: 'Avg Response Time',
+      value: dashboardData?.responseTime != null ? `${dashboardData?.responseTime} min` : 'N/A',
+      change: '-0.8%',
+      changeType: 'decrease',
+      icon: 'Clock',
+      description: 'Filtered range'
+    }
+  ], [dashboardData]);
 
   useEffect(() => {
     computeFromStorage();
-  }, [filters]);
+  }, [computeFromStorage]);
 
   useEffect(() => {
     const onStorage = (e) => {
@@ -154,7 +237,7 @@ const MainDashboard = () => {
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  }, [computeFromStorage]);
 
   return (
     <>
@@ -206,12 +289,12 @@ const MainDashboard = () => {
             {/* Main Charts Section */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className="xl:col-span-2">
-                <CrimeTrendsChart />
+                <CrimeTrendsChart data={filteredData} />
               </div>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <CrimeDistributionChart />
+              <CrimeDistributionChart data={filteredData} />
               <NotificationPanel />
             </div>
 

@@ -56,23 +56,23 @@ const Header = ({ sidebarCollapsed = false, onToggleSidebar }) => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[1100] bg-card border-b border-border">
+    <header className={`fixed top-0 right-0 z-[1100] bg-card border-b border-border transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'left-0' : 'lg:left-60 left-0'}`}>
       <div className="flex items-center justify-between h-16 px-6">
         {/* Left Section - Logo and Mobile Menu */}
         <div className="flex items-center space-x-4">
-          {/* Sidebar Toggle */}
+          {/* Sidebar Toggle - Only show on mobile or when sidebar is collapsed */}
           <Button
             variant="ghost"
             size="icon"
             onClick={onToggleSidebar}
-            className="text-muted-foreground hover:text-foreground"
+            className={`text-muted-foreground hover:text-foreground ${!sidebarCollapsed ? 'lg:hidden' : ''}`}
             aria-label={sidebarCollapsed ? "Open sidebar" : "Close sidebar"}
           >
             <Icon name={sidebarCollapsed ? "Menu" : "PanelLeftClose"} size={20} />
           </Button>
 
-          {/* Logo */}
-          <Link to="/main-dashboard" className="flex items-center space-x-3">
+          {/* Logo - Hide when sidebar is open on desktop */}
+          <Link to="/main-dashboard" className={`flex items-center space-x-3 ${!sidebarCollapsed ? 'lg:hidden' : ''}`}>
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <Icon name="Shield" size={20} color="white" />
             </div>
@@ -80,10 +80,21 @@ const Header = ({ sidebarCollapsed = false, onToggleSidebar }) => {
               <h1 className="text-lg font-semibold text-foreground">CrimePredictPro</h1>
             </div>
           </Link>
+
+          {/* Page Title - Show when sidebar is open */}
+          {!sidebarCollapsed && (
+            <div className="hidden lg:block">
+              <h1 className="text-lg font-semibold text-foreground">
+                {primaryNavItems?.find(item => isActive(item.path))?.label || 
+                 secondaryNavItems?.find(item => isActive(item.path))?.label || 
+                 'Analytics Platform'}
+              </h1>
+            </div>
+          )}
         </div>
 
-        {/* Center Section - Primary Navigation (Desktop) */}
-        <nav className="hidden lg:flex items-center space-x-1">
+        {/* Center Section - Global Navigation (Desktop) - Hide when sidebar is open */}
+        <nav className={`hidden lg:flex items-center space-x-1 ${!sidebarCollapsed ? 'lg:hidden' : ''}`}>
           {primaryNavItems?.map((item) => (
             <Link
               key={item?.path}

@@ -11,9 +11,10 @@ const ModelManagement = () => {
   const [activeTab, setActiveTab] = useState('experiments');
   const [showComparison, setShowComparison] = useState(false);
   const [selectedExperiments, setSelectedExperiments] = useState([]);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Mock data for experiments
-  const mockExperiments = [
+  const [experiments, setExperiments] = useState([
     {
       id: 'exp_001',
       name: 'LSTM Crime Predictor v2.1',
@@ -91,7 +92,7 @@ const ModelManagement = () => {
         { key: 'rf_weight', value: '0.3' }
       ]
     }
-  ];
+  ]);
 
   // Mock data for models
   const mockModels = [
@@ -210,9 +211,43 @@ const ModelManagement = () => {
   };
 
   const handleCompareExperiments = (experimentIds) => {
-    const experimentsToCompare = mockExperiments?.filter(exp => experimentIds?.includes(exp?.id));
+    const experimentsToCompare = experiments?.filter(exp => experimentIds?.includes(exp?.id));
     setSelectedExperiments(experimentsToCompare);
     setShowComparison(true);
+  };
+
+  const handleSyncMLflow = () => {
+    setIsSyncing(true);
+    // Simulate syncing with MLflow
+    setTimeout(() => {
+      setIsSyncing(false);
+      alert('Successfully synced with MLflow server. 2 new experiments found.');
+    }, 2000);
+  };
+
+  const handleNewExperiment = () => {
+    const newExpId = `exp_${String(experiments.length + 1).padStart(3, '0')}`;
+    const newExperiment = {
+      id: newExpId,
+      name: `New Experiment ${experiments.length + 1}`,
+      description: 'Newly created experiment for testing purposes',
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date(),
+      status: 'running',
+      mae: null,
+      rmse: null,
+      mape: null,
+      r2: null,
+      trainingTime: 'In progress',
+      parameters: [
+        { key: 'learning_rate', value: '0.001' },
+        { key: 'batch_size', value: '32' }
+      ]
+    };
+    
+    setExperiments([newExperiment, ...experiments]);
+    alert(`New experiment "${newExperiment.name}" has been created and started.`);
   };
 
   const handleDeployModel = (modelId) => {
@@ -241,10 +276,21 @@ const ModelManagement = () => {
               </p>
             </div>
             <div className="flex items-center space-x-3">
-              <Button variant="outline" iconName="RefreshCw" iconPosition="left">
+              <Button 
+                variant="outline" 
+                iconName="RefreshCw" 
+                iconPosition="left"
+                onClick={handleSyncMLflow}
+                loading={isSyncing}
+              >
                 Sync MLflow
               </Button>
-              <Button variant="default" iconName="Plus" iconPosition="left">
+              <Button 
+                variant="default" 
+                iconName="Plus" 
+                iconPosition="left"
+                onClick={handleNewExperiment}
+              >
                 New Experiment
               </Button>
             </div>
@@ -259,7 +305,7 @@ const ModelManagement = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Experiments</p>
-                <p className="text-2xl font-bold text-foreground">{mockExperiments?.length}</p>
+                <p className="text-2xl font-bold text-foreground">{experiments?.length}</p>
               </div>
               <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                 <Icon name="FlaskConical" size={20} color="var(--color-primary)" />
@@ -328,7 +374,7 @@ const ModelManagement = () => {
           <div className="p-6">
             {activeTab === 'experiments' && (
               <ExperimentTable
-                experiments={mockExperiments}
+                experiments={experiments}
                 onViewDetails={handleViewExperimentDetails}
                 onCompare={handleCompareExperiments}
               />

@@ -7,7 +7,7 @@ import Select from '../../../components/ui/Select';
 const FilterPanel = ({ onFiltersChange }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [filters, setFilters] = useState({
-    dateRange: { start: '2024-01-01', end: '2024-10-02' },
+    dateRange: { start: '2024-01-01', end: '2026-03-31' },
     region: '',
     city: '',
     crimeTypes: [],
@@ -81,7 +81,7 @@ const FilterPanel = ({ onFiltersChange }) => {
 
   const resetFilters = () => {
     const defaultFilters = {
-      dateRange: { start: '2024-01-01', end: '2024-10-02' },
+      dateRange: { start: '2024-01-01', end: '2026-03-31' },
       region: '',
       city: '',
       crimeTypes: [],
